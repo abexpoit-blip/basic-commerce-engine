@@ -28,6 +28,7 @@ export default function QuickShortenHero({ onQuickCreate, onSelectForSimulation 
   const [targetUrl, setTargetUrl] = useState('');
   const [customSlug, setCustomSlug] = useState('');
   const [preset, setPreset] = useState<'fb-strict' | 'adsterra-direct' | 'ecommerce-lead'>('fb-strict');
+  const [selectedDomain, setSelectedDomain] = useState('shop.basictrickhub.com');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [createdLink, setCreatedLink] = useState<ShortLink | null>(null);
@@ -35,10 +36,7 @@ export default function QuickShortenHero({ onQuickCreate, onSelectForSimulation 
   const [showQr, setShowQr] = useState(false);
 
   const getBaseUrl = () => {
-    if (typeof window !== 'undefined') {
-      return window.location.origin;
-    }
-    return 'https://yourbrand.com';
+    return `https://${selectedDomain}`;
   };
 
   const handleShorten = async (e: React.FormEvent) => {
@@ -82,15 +80,15 @@ export default function QuickShortenHero({ onQuickCreate, onSelectForSimulation 
       <div className="absolute bottom-0 left-10 w-72 h-72 bg-teal-50/50 rounded-full blur-2xl pointer-events-none" />
 
       <div className="relative z-10 space-y-6">
-        {/* Title Header */}
+        {/* Title Header & Domain Badge */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Enterprise Link Armor</span>
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Active Domain: <strong>shop.basictrickhub.com</strong></span>
               </span>
-              <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                 0% Traffic Drop Routing
               </span>
             </div>
@@ -98,8 +96,21 @@ export default function QuickShortenHero({ onQuickCreate, onSelectForSimulation 
               Create Facebook Ads Short Link
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 max-w-2xl mt-1 leading-relaxed">
-              Generate protected short links for your media campaigns. Facebook review crawlers automatically see policy-compliant landing pages while real buyers reach your offer instantly.
+              Generate protected short links under <strong className="text-slate-800">shop.basictrickhub.com</strong>. Facebook review crawlers automatically see policy-compliant safe pages while real buyers reach your offer instantly.
             </p>
+          </div>
+
+          {/* Domain Selector Pill */}
+          <div className="bg-slate-50 border border-slate-200 p-1.5 rounded-2xl flex items-center gap-1 text-xs">
+            <span className="text-slate-500 font-semibold px-2 text-[11px]">Domain:</span>
+            <select
+              value={selectedDomain}
+              onChange={e => setSelectedDomain(e.target.value)}
+              className="bg-white border border-slate-200 font-mono text-xs text-indigo-700 font-bold px-2.5 py-1.5 rounded-xl focus:outline-none shadow-xs"
+            >
+              <option value="shop.basictrickhub.com">shop.basictrickhub.com (Custom Domain)</option>
+              <option value="fb-ads-safe-shortener.vercel.app">fb-ads-safe-shortener.vercel.app</option>
+            </select>
           </div>
         </div>
 
@@ -180,7 +191,7 @@ export default function QuickShortenHero({ onQuickCreate, onSelectForSimulation 
 
             <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>Real User Delivery: <strong className="text-slate-700">Sub-80ms Routing</strong></span>
+              <span>Domain SSL: <strong className="text-emerald-600 font-semibold">Active & Encrypted (HTTPS)</strong></span>
             </div>
           </div>
 
@@ -201,7 +212,7 @@ export default function QuickShortenHero({ onQuickCreate, onSelectForSimulation 
                 </div>
                 <div>
                   <h3 className="text-sm font-extrabold text-slate-900">
-                    Campaign Link Generated & Armed
+                    Campaign Link Generated & Armed on {selectedDomain}!
                   </h3>
                   <p className="text-[11px] text-slate-600">
                     Ready to paste into Meta Ads Manager. UTM parameters and click attribution are preserved.
@@ -225,7 +236,7 @@ export default function QuickShortenHero({ onQuickCreate, onSelectForSimulation 
                 className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
               >
                 {copied ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Copy className="w-3.5 h-3.5 stroke-[2.5]" />}
-                <span>{copied ? 'Copied!' : 'Copy Link'}</span>
+                <span>{copied ? 'Copied!' : 'Copy Ad Link'}</span>
               </button>
 
               <button
@@ -256,7 +267,7 @@ export default function QuickShortenHero({ onQuickCreate, onSelectForSimulation 
                   onClick={e => e.stopPropagation()}
                 >
                   <h4 className="text-sm font-bold text-slate-900 mb-1">Mobile Test QR</h4>
-                  <p className="text-xs text-slate-500 mb-4 font-mono">/r/{createdLink.slug}</p>
+                  <p className="text-xs text-slate-500 mb-4 font-mono">{getBaseUrl()}/r/{createdLink.slug}</p>
                   <div className="bg-slate-50 p-3.5 rounded-2xl inline-block mb-4 border border-slate-200">
                     <img 
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`${getBaseUrl()}/r/${createdLink.slug}`)}`} 
