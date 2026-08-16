@@ -231,6 +231,17 @@ export default function QuickShortenHero({ onQuickCreate, onSelectForSimulation 
                 {getBaseUrl()}/r/{createdLink.slug}
               </div>
 
+              <a
+                href={`${getBaseUrl()}/r/${createdLink.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                title="Test short link in new browser tab"
+              >
+                <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Test Link ➔</span>
+              </a>
+
               <button
                 onClick={() => copyShortUrl(createdLink.slug)}
                 className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition-all shadow-sm active:scale-95"

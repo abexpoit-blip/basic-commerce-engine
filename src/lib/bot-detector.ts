@@ -131,9 +131,6 @@ export function detectBot(
   };
 
   const acceptLanguage = getHeader('accept-language');
-  const secChUa = getHeader('sec-ch-ua');
-  const secChUaMobile = getHeader('sec-ch-ua-mobile');
-  const xForwardedFor = getHeader('x-forwarded-for');
 
   // Check 1: Empty or Suspiciously Short User Agent
   if (!ua || ua.trim().length < 12) {
@@ -173,7 +170,6 @@ export function detectBot(
   }
 
   // Check 5: Header Integrity & Missing Browser Signals
-  // Legitimate real users clicking ads almost always send Accept-Language header
   if (!isBot && sensitivity !== 'standard') {
     if (!acceptLanguage) {
       reasons.push('Missing Accept-Language Header (Common in review bots)');
@@ -258,7 +254,7 @@ export function buildTargetUrlWithParams(
 }
 
 /**
- * Universal Serverless Slug Codec:
+ * Universal Serverless Slug Codec (Dual Browser & Node.js Safe):
  * Encodes targetUrl + routing profile into a compact, URL-safe slug token
  * so every Vercel Lambda across the globe can resolve the target destination
  * instantly without database dependencies.
@@ -270,13 +266,29 @@ export function encodeLinkSlug(
 ): string {
   try {
     const payload = JSON.stringify({
-      u: targetUrl,
+      u: targetUrl.trim(),
       s: safePageType,
       p: preset,
     });
-    const base64 = Buffer.from(payload).toString('base64url');
+    
+    let base64 = '';
+    if (typeof window !== 'undefined' && typeof window.btoa === 'function') {
+      // Browser environment (btoa safe utf-8)
+      base64 = window.btoa(unescape(encodeURIComponent(payload)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+    } else {
+      // Node.js runtime
+      base64 = Buffer.from(payload, 'utf-8')
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+    }
     return `v-${base64}`;
-  } catch {
+  } catch (err) {
+    console.error('encodeLinkSlug error:', err);
     return `ad-${Math.random().toString(36).substring(2, 7)}`;
   }
 }
@@ -284,8 +296,13 @@ export function encodeLinkSlug(
 export function decodeLinkSlug(slug: string): { targetUrl: string; safePageType: any } | null {
   try {
     if (slug.startsWith('v-')) {
-      const raw = slug.substring(2);
-      const json = Buffer.from(raw, 'base64url').toString('utf-8');
+      const raw = slug.substring(2).replace(/-/g, '+').replace(/_/g, '/');
+      let json = '';
+      if (typeof window !== 'undefined' && typeof window.atob === 'function') {
+        json = decodeURIComponent(escape(window.atob(raw)));
+      } else {
+        json = Buffer.from(raw, 'base64').toString('utf-8');
+      }
       const data = JSON.parse(json);
       if (data && data.u) {
         return {
@@ -294,9 +311,8 @@ export function decodeLinkSlug(slug: string): { targetUrl: string; safePageType:
         };
       }
     }
-  } catch {
+  } catch (err) {
     // If not a token slug, return null
   }
   return null;
 }
-
