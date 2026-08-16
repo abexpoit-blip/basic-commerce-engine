@@ -35,10 +35,32 @@ export default function Dashboard() {
   const fetchLinks = async () => {
     try {
       setLoading(true);
+      // 1. Load local custom links from localStorage
+      let localCustom: ShortLink[] = [];
+      try {
+        const saved = localStorage.getItem('linkshield_links');
+        if (saved) {
+          localCustom = JSON.parse(saved);
+        }
+      } catch (e) {}
+
+      // 2. Sync with server
+      if (localCustom.length > 0) {
+        await fetch('/api/links/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ links: localCustom }),
+        });
+      }
+
       const res = await fetch('/api/links');
       const data = await res.json();
       if (data.success) {
         setLinks(data.links);
+        // Update local storage cache
+        try {
+          localStorage.setItem('linkshield_links', JSON.stringify(data.links));
+        } catch (e) {}
       }
     } catch (err) {
       console.error('Failed to fetch links', err);
@@ -50,6 +72,12 @@ export default function Dashboard() {
   useEffect(() => {
     fetchLinks();
   }, []);
+
+  const persistToLocal = (newLinks: ShortLink[]) => {
+    try {
+      localStorage.setItem('linkshield_links', JSON.stringify(newLinks));
+    } catch (e) {}
+  };
 
   const handleQuickCreate = async ({
     targetUrl,
@@ -101,6 +129,13 @@ export default function Dashboard() {
     if (!data.success) {
       throw new Error(data.error || 'Failed to create link');
     }
+    
+    // Save to local storage
+    if (data.link) {
+      const updated = [data.link, ...links.filter(l => l.id !== data.link.id)];
+      persistToLocal(updated);
+    }
+
     await fetchLinks();
     return data.link;
   };
@@ -115,6 +150,10 @@ export default function Dashboard() {
     if (!data.success) {
       throw new Error(data.error || 'Failed to save');
     }
+    if (data.link) {
+      const updated = [data.link, ...links.filter(l => l.id !== data.link.id)];
+      persistToLocal(updated);
+    }
     await fetchLinks();
   };
 
@@ -124,7 +163,9 @@ export default function Dashboard() {
       const res = await fetch(`/api/links/${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
-        setLinks(prev => prev.filter(l => l.id !== id));
+        const remaining = links.filter(l => l.id !== id);
+        setLinks(remaining);
+        persistToLocal(remaining);
       }
     } catch (err) {
       console.error(err);

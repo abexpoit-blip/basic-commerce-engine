@@ -82,12 +82,24 @@ export default function RedirectPage({ params, searchParams }: PageProps) {
 
   if (!link) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-slate-900 px-4 text-center">
-        <div className="w-12 h-12 rounded-2xl bg-slate-200 flex items-center justify-center mb-4 text-slate-500 font-bold">
-          404
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-slate-900 px-4 text-center font-sans">
+        <div className="p-8 max-w-md w-full bg-white rounded-3xl border border-slate-200 shadow-sm space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center mx-auto text-indigo-600 font-extrabold text-sm">
+            404
+          </div>
+          <h1 className="text-lg font-extrabold text-slate-900">Campaign Link Not Found</h1>
+          <p className="text-slate-500 text-xs leading-relaxed">
+            The short slug <code className="font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">/r/{slug}</code> does not exist or was deleted.
+          </p>
+          <div className="pt-2">
+            <a
+              href="/"
+              className="inline-block px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all"
+            >
+              Open LinkShield Dashboard ➔
+            </a>
+          </div>
         </div>
-        <h1 className="text-xl font-bold text-slate-900 mb-2">Campaign Link Not Found</h1>
-        <p className="text-slate-500 text-xs max-w-sm">This link may be inactive, paused, or modified by the campaign administrator.</p>
       </div>
     );
   }
