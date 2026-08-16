@@ -254,9 +254,9 @@ export function buildTargetUrlWithParams(
 }
 
 /**
- * Universal Serverless Slug Codec (Dual Browser & Node.js Safe):
- * Encodes targetUrl + routing profile into a compact, URL-safe slug token
- * so every Vercel Lambda across the globe can resolve the target destination
+ * Universal Serverless Slug Codec (Case-Insensitive Hex + Base64 Safe):
+ * Encodes targetUrl + routing profile into a 100% case-insensitive token
+ * so every Vercel Lambda / Edge across the globe resolves the target destination
  * instantly without database dependencies.
  */
 export function encodeLinkSlug(
@@ -271,22 +271,12 @@ export function encodeLinkSlug(
       p: preset,
     });
     
-    let base64 = '';
-    if (typeof window !== 'undefined' && typeof window.btoa === 'function') {
-      // Browser environment (btoa safe utf-8)
-      base64 = window.btoa(unescape(encodeURIComponent(payload)))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
-    } else {
-      // Node.js runtime
-      base64 = Buffer.from(payload, 'utf-8')
-        .toString('base64')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
+    // Hex encoding: 100% case-insensitive and URL-safe
+    let hex = '';
+    for (let i = 0; i < payload.length; i++) {
+      hex += payload.charCodeAt(i).toString(16).padStart(2, '0');
     }
-    return `v-${base64}`;
+    return `v-${hex}`;
   } catch (err) {
     console.error('encodeLinkSlug error:', err);
     return `ad-${Math.random().toString(36).substring(2, 7)}`;
@@ -295,24 +285,50 @@ export function encodeLinkSlug(
 
 export function decodeLinkSlug(slug: string): { targetUrl: string; safePageType: any } | null {
   try {
-    if (slug.startsWith('v-')) {
-      const raw = slug.substring(2).replace(/-/g, '+').replace(/_/g, '/');
-      let json = '';
-      if (typeof window !== 'undefined' && typeof window.atob === 'function') {
-        json = decodeURIComponent(escape(window.atob(raw)));
-      } else {
-        json = Buffer.from(raw, 'base64').toString('utf-8');
+    if (!slug) return null;
+    const clean = slug.trim();
+    
+    if (clean.startsWith('v-')) {
+      const raw = clean.substring(2);
+      
+      // 1. Try Hex Decoding (preferred & case-insensitive)
+      if (/^[0-9a-fA-F]+$/.test(raw) && raw.length % 2 === 0) {
+        try {
+          let json = '';
+          for (let i = 0; i < raw.length; i += 2) {
+            json += String.fromCharCode(parseInt(raw.substr(i, 2), 16));
+          }
+          const data = JSON.parse(json);
+          if (data && data.u) {
+            return {
+              targetUrl: data.u,
+              safePageType: data.s || 'tech-editorial',
+            };
+          }
+        } catch {}
       }
-      const data = JSON.parse(json);
-      if (data && data.u) {
-        return {
-          targetUrl: data.u,
-          safePageType: data.s || 'tech-editorial',
-        };
-      }
+
+      // 2. Base64 fallback
+      try {
+        const normalized = raw.replace(/-/g, '+').replace(/_/g, '/');
+        let json = '';
+        if (typeof window !== 'undefined' && typeof window.atob === 'function') {
+          json = decodeURIComponent(escape(window.atob(normalized)));
+        } else {
+          json = Buffer.from(normalized, 'base64').toString('utf-8');
+        }
+        const data = JSON.parse(json);
+        if (data && data.u) {
+          return {
+            targetUrl: data.u,
+            safePageType: data.s || 'tech-editorial',
+          };
+        }
+      } catch {}
     }
   } catch (err) {
     // If not a token slug, return null
   }
   return null;
 }
+
