@@ -12,6 +12,7 @@ import SafeTemplatesView from '@/components/SafeTemplatesView';
 import ComplianceGuideModal from '@/components/ComplianceGuideModal';
 import DomainSetupModal from '@/components/DomainSetupModal';
 import { ShortLink } from '@/lib/types';
+import { encodeLinkSlug } from '@/lib/bot-detector';
 import { 
   ShieldCheck, 
   Globe, 
@@ -57,7 +58,6 @@ export default function Dashboard() {
       const data = await res.json();
       if (data.success) {
         setLinks(data.links);
-        // Update local storage cache
         try {
           localStorage.setItem('linkshield_links', JSON.stringify(data.links));
         } catch (e) {}
@@ -105,8 +105,7 @@ export default function Dashboard() {
       title = 'E-Commerce Sales Funnel Link';
     }
 
-    const randomSuffix = Math.random().toString(36).substring(2, 7);
-    const finalSlug = slug || `ad-${randomSuffix}`;
+    const finalSlug = slug ? slug.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-') : encodeLinkSlug(targetUrl, safePageType, preset);
 
     const res = await fetch('/api/links', {
       method: 'POST',

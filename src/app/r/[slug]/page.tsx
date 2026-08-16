@@ -2,7 +2,7 @@ import React from 'react';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { storage } from '@/lib/storage';
-import { detectBot, buildTargetUrlWithParams } from '@/lib/bot-detector';
+import { detectBot, buildTargetUrlWithParams, decodeLinkSlug } from '@/lib/bot-detector';
 import TechBlogTemplate from '@/components/SafeTemplates/TechBlogTemplate';
 import EcommerceProductTemplate from '@/components/SafeTemplates/EcommerceProductTemplate';
 import AgencyServiceTemplate from '@/components/SafeTemplates/AgencyServiceTemplate';
@@ -78,7 +78,64 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default function RedirectPage({ params, searchParams }: PageProps) {
   const { slug } = params;
-  const link = storage.getLinkBySlug(slug);
+  let link = storage.getLinkBySlug(slug);
+
+  // 1. If not found in storage, decode smart slug token
+  if (!link) {
+    const decoded = decodeLinkSlug(slug);
+    if (decoded) {
+      link = {
+        id: `auto-${slug}`,
+        slug,
+        title: `Auto Route (${slug.substring(0, 10)})`,
+        targetUrl: decoded.targetUrl,
+        safePageType: decoded.safePageType || 'tech-editorial',
+        redirectMethod: 'meta-refresh',
+        sensitivity: 'strict-fb',
+        enabled: true,
+        allowedCountries: [],
+        allowedDevices: ['mobile', 'desktop', 'tablet'],
+        requireFbclid: false,
+        preserveUtms: true,
+        createdAt: new Date().toISOString(),
+        clicks: { total: 0, human: 0, bot: 0 },
+        health: {
+          score: 100,
+          riskLevel: 'safe',
+          crawlerScanSurge: false,
+          metaReviewFrequency: 'normal',
+          recommendation: 'Optimal protection active',
+        },
+      };
+    }
+  }
+
+  // 2. Query param fallback if passed
+  if (!link && typeof searchParams.dest === 'string') {
+    link = {
+      id: `dest-${slug}`,
+      slug,
+      title: 'Target Link',
+      targetUrl: decodeURIComponent(searchParams.dest),
+      safePageType: 'tech-editorial',
+      redirectMethod: 'meta-refresh',
+      sensitivity: 'strict-fb',
+      enabled: true,
+      allowedCountries: [],
+      allowedDevices: ['mobile', 'desktop', 'tablet'],
+      requireFbclid: false,
+      preserveUtms: true,
+      createdAt: new Date().toISOString(),
+      clicks: { total: 0, human: 0, bot: 0 },
+      health: {
+        score: 100,
+        riskLevel: 'safe',
+        crawlerScanSurge: false,
+        metaReviewFrequency: 'normal',
+        recommendation: 'Optimal protection active',
+      },
+    };
+  }
 
   if (!link) {
     return (

@@ -256,3 +256,47 @@ export function buildTargetUrlWithParams(
     return targetUrl;
   }
 }
+
+/**
+ * Universal Serverless Slug Codec:
+ * Encodes targetUrl + routing profile into a compact, URL-safe slug token
+ * so every Vercel Lambda across the globe can resolve the target destination
+ * instantly without database dependencies.
+ */
+export function encodeLinkSlug(
+  targetUrl: string,
+  safePageType: string = 'tech-editorial',
+  preset: string = 'fb-strict'
+): string {
+  try {
+    const payload = JSON.stringify({
+      u: targetUrl,
+      s: safePageType,
+      p: preset,
+    });
+    const base64 = Buffer.from(payload).toString('base64url');
+    return `v-${base64}`;
+  } catch {
+    return `ad-${Math.random().toString(36).substring(2, 7)}`;
+  }
+}
+
+export function decodeLinkSlug(slug: string): { targetUrl: string; safePageType: any } | null {
+  try {
+    if (slug.startsWith('v-')) {
+      const raw = slug.substring(2);
+      const json = Buffer.from(raw, 'base64url').toString('utf-8');
+      const data = JSON.parse(json);
+      if (data && data.u) {
+        return {
+          targetUrl: data.u,
+          safePageType: data.s || 'tech-editorial',
+        };
+      }
+    }
+  } catch {
+    // If not a token slug, return null
+  }
+  return null;
+}
+
