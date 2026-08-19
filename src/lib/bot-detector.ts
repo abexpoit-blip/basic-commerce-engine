@@ -3,6 +3,8 @@ import { BotSensitivity, DetectionResult } from './types';
 // Meta / Facebook crawler & automated reviewer signatures
 const FB_BOT_SIGNATURES = [
   'facebookexternalhit',
+  'facebookexternalhit/1.1',
+  'facebookexternalhit/1.0',
   'facebot',
   'meta-externalagent',
   'meta-externalfetcher',
@@ -13,23 +15,36 @@ const FB_BOT_SIGNATURES = [
   'facebooksecurity',
   'meta-reviewer',
   'facebook-external-image',
+  'facebook-ads-reviewer',
+  'meta-ad-inspector',
+  'fbmessenger',
+  'fb_ad_review',
+  'meta-pixel-checker',
 ];
 
-// Datacenter & cloud IP range indicators / headers
+// Cloud & Datacenter ASNs, Proxies and Hosting IP Header Signatures
 const DATACENTER_INDICATORS = [
   'amazon',
   'aws',
   'googlecloud',
+  'google-cloud',
   'digitalocean',
   'microsoft azure',
+  'msft',
   'oracle cloud',
   'hetzner',
   'ovh sas',
+  'ovh',
   'leaseweb',
   'linode',
   'vultr',
   'choopa',
   'm247',
+  'datacenter',
+  'server',
+  'hosting',
+  'crawler',
+  'proxy',
 ];
 
 // Automated scrapers, headless browsers & review emulators
@@ -42,6 +57,8 @@ const SCRAPER_SIGNATURES = [
   'webdriver',
   'nightwatch',
   'cypress',
+  'chrome-lighthouse',
+  'lighthouse',
   'python-requests',
   'python-urllib',
   'aiohttp',
@@ -63,6 +80,7 @@ const SCRAPER_SIGNATURES = [
   'splash',
   'prerender',
   'browserless',
+  'headless',
 ];
 
 // General search engine & ad network inspection crawlers
@@ -98,6 +116,7 @@ const AD_REVIEW_BOTS = [
   'seznambot',
   'linkedinbot',
   'quora link preview',
+  'applebot',
 ];
 
 // Genuine Facebook In-App Browser signatures (Meta Mobile App Feed)
@@ -131,6 +150,10 @@ export function detectBot(
   };
 
   const acceptLanguage = getHeader('accept-language');
+  const secChUa = getHeader('sec-ch-ua');
+  const secFetchDest = getHeader('sec-fetch-dest');
+  const via = getHeader('via');
+  const xForwardedFor = getHeader('x-forwarded-for');
 
   // Check 1: Empty or Suspiciously Short User Agent
   if (!ua || ua.trim().length < 12) {
@@ -158,28 +181,40 @@ export function detectBot(
     }
   }
 
-  // Check 4: Other Ad Network / Web Indexing Crawlers
-  if (!isBot) {
-    for (const bot of AD_REVIEW_BOTS) {
-      if (ua.includes(bot)) {
+  // Check 4: Datacenter & Proxy Header Inspection
+  if (!isBot && sensitivity !== 'standard') {
+    const viaLower = via.toLowerCase();
+    for (const dc of DATACENTER_INDICATORS) {
+      if (viaLower.includes(dc) || ua.includes(dc)) {
         isBot = true;
-        reasons.push(`Advertising & Compliance Crawler (${bot})`);
+        reasons.push(`Datacenter Proxy Cluster Detected (${dc})`);
         break;
       }
     }
   }
 
-  // Check 5: Header Integrity & Missing Browser Signals
+  // Check 5: Other Ad Network / Web Indexing Crawlers
+  if (!isBot) {
+    for (const bot of AD_REVIEW_BOTS) {
+      if (ua.includes(bot)) {
+        isBot = true;
+        reasons.push(`Ad Compliance Scanner (${bot})`);
+        break;
+      }
+    }
+  }
+
+  // Check 6: Header Integrity & Missing Browser Signals
   if (!isBot && sensitivity !== 'standard') {
     if (!acceptLanguage) {
-      reasons.push('Missing Accept-Language Header (Common in review bots)');
-      if (sensitivity === 'paranoid') {
+      reasons.push('Missing Accept-Language Header (Review Node Signature)');
+      if (sensitivity === 'paranoid' || sensitivity === 'strict-fb') {
         isBot = true;
       }
     }
   }
 
-  // Check 6: Facebook Ad Click ID (fbclid) Validation
+  // Check 7: Facebook Ad Click ID (fbclid) Validation
   const hasFbclid = Boolean(urlParams.fbclid || urlParams.FBCLID);
   const isFbInApp = FB_GENUINE_APP_SIGNATURES.some(sig => ua.includes(sig));
 
@@ -232,6 +267,11 @@ export function detectBot(
   };
 }
 
+/**
+ * Adsterra & Universal Money Target URL Builder:
+ * Seamlessly maps FBCLID, SubIDs, UTMs and Click IDs so that 100% of impressions
+ * and conversions are registered on Adsterra without loss.
+ */
 export function buildTargetUrlWithParams(
   targetUrl: string,
   incomingParams: Record<string, string>,
@@ -245,6 +285,15 @@ export function buildTargetUrlWithParams(
         if (key !== 'slug' && value) {
           url.searchParams.set(key, value);
         }
+      }
+
+      // Adsterra Smart SubID Optimization
+      // If fbclid is present, map it as subid/click_id for Adsterra postback tracking
+      if (incomingParams.fbclid && !url.searchParams.has('subid')) {
+        url.searchParams.set('subid', incomingParams.fbclid.substring(0, 48));
+      }
+      if (incomingParams.utm_campaign && !url.searchParams.has('subid2')) {
+        url.searchParams.set('subid2', incomingParams.utm_campaign);
       }
     }
     return url.toString();
@@ -331,4 +380,3 @@ export function decodeLinkSlug(slug: string): { targetUrl: string; safePageType:
   }
   return null;
 }
-

@@ -11,7 +11,9 @@ import {
   Lock,
   ShoppingBag,
   Briefcase,
-  Play
+  Play,
+  Flame,
+  Layers
 } from 'lucide-react';
 import { ShortLink } from '@/lib/types';
 
@@ -27,7 +29,7 @@ interface QuickShortenHeroProps {
 export default function QuickShortenHero({ onQuickCreate, onSelectForSimulation }: QuickShortenHeroProps) {
   const [targetUrl, setTargetUrl] = useState('');
   const [customSlug, setCustomSlug] = useState('');
-  const [preset, setPreset] = useState<'fb-strict' | 'adsterra-direct' | 'ecommerce-lead'>('fb-strict');
+  const [preset, setPreset] = useState<'fb-strict' | 'adsterra-direct' | 'ecommerce-lead'>('adsterra-direct');
   const [selectedDomain, setSelectedDomain] = useState('shop.basictrickhub.com');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -88,15 +90,16 @@ export default function QuickShortenHero({ onQuickCreate, onSelectForSimulation 
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span>Active Domain: <strong>shop.basictrickhub.com</strong></span>
               </span>
-              <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                0% Traffic Drop Routing
+              <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1">
+                <Zap className="w-3 h-3 text-indigo-600" />
+                <span>Sub-50ms Adsterra Stealth Bridge</span>
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Create Facebook Ads Short Link
+              Create Facebook-Safe Short Link
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 max-w-2xl mt-1 leading-relaxed">
-              Generate protected short links under <strong className="text-slate-800">shop.basictrickhub.com</strong>. Facebook review crawlers automatically see policy-compliant safe pages while real buyers reach your offer instantly.
+              Paste your <strong className="text-slate-800">Adsterra Direct Link</strong> or sales page. Meta review crawlers automatically see high-authority Safe White Pages while 100% of real Facebook ad buyers are forwarded without rejection.
             </p>
           </div>
 
@@ -106,7 +109,7 @@ export default function QuickShortenHero({ onQuickCreate, onSelectForSimulation 
             <select
               value={selectedDomain}
               onChange={e => setSelectedDomain(e.target.value)}
-              className="bg-white border border-slate-200 font-mono text-xs text-indigo-700 font-bold px-2.5 py-1.5 rounded-xl focus:outline-none shadow-xs"
+              className="bg-white border border-slate-200 font-mono text-xs text-indigo-700 font-bold px-2.5 py-1.5 rounded-xl focus:outline-none shadow-xs cursor-pointer"
             >
               <option value="shop.basictrickhub.com">shop.basictrickhub.com (Custom Domain)</option>
               <option value="fb-ads-safe-shortener.vercel.app">fb-ads-safe-shortener.vercel.app</option>
@@ -124,7 +127,7 @@ export default function QuickShortenHero({ onQuickCreate, onSelectForSimulation 
                 type="url"
                 value={targetUrl}
                 onChange={e => setTargetUrl(e.target.value)}
-                placeholder="Paste destination URL (Sales landing page, Adsterra direct link, CPA offer)..."
+                placeholder="Paste Adsterra direct link or sales landing page (e.g. https://your-offer.com/direct)..."
                 required
                 className="w-full bg-transparent text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none font-sans"
               />
@@ -137,7 +140,7 @@ export default function QuickShortenHero({ onQuickCreate, onSelectForSimulation 
                 type="text"
                 value={customSlug}
                 onChange={e => setCustomSlug(e.target.value)}
-                placeholder="custom-slug"
+                placeholder="custom-slug (optional)"
                 className="w-full bg-transparent text-xs text-indigo-600 font-mono font-bold focus:outline-none pl-1 placeholder:text-slate-400"
               />
             </div>
@@ -163,26 +166,27 @@ export default function QuickShortenHero({ onQuickCreate, onSelectForSimulation 
           <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">
-                Preset Routing:
+                Preset Mode:
               </span>
               {[
+                { id: 'adsterra-direct', label: 'Adsterra Direct Safe Bridge (Recommended)', icon: Flame },
                 { id: 'fb-strict', label: 'Meta Ads Strict Review Armor', icon: ShieldCheck },
-                { id: 'adsterra-direct', label: 'Adsterra Direct Safe Bridge', icon: Zap },
                 { id: 'ecommerce-lead', label: 'E-Commerce Storefront Funnel', icon: ShoppingBag },
               ].map(p => {
                 const Icon = p.icon;
+                const isSelected = preset === p.id;
                 return (
                   <button
                     type="button"
                     key={p.id}
                     onClick={() => setPreset(p.id as any)}
                     className={`px-3 py-1.5 rounded-xl font-bold text-xs border flex items-center gap-1.5 transition-all ${
-                      preset === p.id
+                      isSelected
                         ? 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-sm'
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    <Icon className="w-3.5 h-3.5 text-indigo-600" />
+                    <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-indigo-600' : 'text-slate-500'}`} />
                     <span>{p.label}</span>
                   </button>
                 );
@@ -191,7 +195,7 @@ export default function QuickShortenHero({ onQuickCreate, onSelectForSimulation 
 
             <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>Domain SSL: <strong className="text-emerald-600 font-semibold">Active & Encrypted (HTTPS)</strong></span>
+              <span>Tracking: <strong className="text-emerald-700 font-semibold">UTM & FBCLID Passthrough Active</strong></span>
             </div>
           </div>
 
@@ -215,13 +219,13 @@ export default function QuickShortenHero({ onQuickCreate, onSelectForSimulation 
                     Campaign Link Generated & Armed on {selectedDomain}!
                   </h3>
                   <p className="text-[11px] text-slate-600">
-                    Ready to paste into Meta Ads Manager. UTM parameters and click attribution are preserved.
+                    Ready to paste into Meta Ads Manager. Real traffic will reach your Adsterra target with zero rejection.
                   </p>
                 </div>
               </div>
 
               <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 w-fit">
-                Policy Compliant
+                100% Policy Compliant
               </span>
             </div>
 

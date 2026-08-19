@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
+import LiveCounterBanner from '@/components/LiveCounterBanner';
 import QuickShortenHero from '@/components/QuickShortenHero';
 import LinkLeakAlerts from '@/components/LinkLeakAlerts';
 import LinkList from '@/components/LinkList';
@@ -241,7 +242,10 @@ export default function Dashboard() {
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
-        {/* 1. Quick 1-Click Shortener Bar */}
+        {/* 1. Real-time Live Traffic Counter Banner */}
+        <LiveCounterBanner />
+
+        {/* 2. Quick 1-Click Shortener Bar */}
         <QuickShortenHero
           onQuickCreate={handleQuickCreate}
           onSelectForSimulation={handleSelectForSimulation}
