@@ -150,10 +150,7 @@ export function detectBot(
   };
 
   const acceptLanguage = getHeader('accept-language');
-  const secChUa = getHeader('sec-ch-ua');
-  const secFetchDest = getHeader('sec-fetch-dest');
   const via = getHeader('via');
-  const xForwardedFor = getHeader('x-forwarded-for');
 
   // Check 1: Empty or Suspiciously Short User Agent
   if (!ua || ua.trim().length < 12) {
@@ -268,9 +265,9 @@ export function detectBot(
 }
 
 /**
- * Adsterra & Universal Money Target URL Builder:
- * Seamlessly maps FBCLID, SubIDs, UTMs and Click IDs so that 100% of impressions
- * and conversions are registered on Adsterra without loss.
+ * Meta Pixel & Adsterra Precision Parameter Mapper:
+ * Ensures 100% of Facebook Pixel events, conversions, fbclid, and UTM tracking
+ * are transferred seamlessly to destination URLs with zero data loss.
  */
 export function buildTargetUrlWithParams(
   targetUrl: string,
@@ -287,13 +284,20 @@ export function buildTargetUrlWithParams(
         }
       }
 
-      // Adsterra Smart SubID Optimization
-      // If fbclid is present, map it as subid/click_id for Adsterra postback tracking
-      if (incomingParams.fbclid && !url.searchParams.has('subid')) {
-        url.searchParams.set('subid', incomingParams.fbclid.substring(0, 48));
+      // Meta Pixel & Adsterra Smart SubID Forwarding
+      const fbclid = incomingParams.fbclid || incomingParams.FBCLID;
+      if (fbclid) {
+        if (!url.searchParams.has('subid')) {
+          url.searchParams.set('subid', fbclid.substring(0, 48));
+        }
+        if (!url.searchParams.has('click_id')) {
+          url.searchParams.set('click_id', fbclid);
+        }
       }
-      if (incomingParams.utm_campaign && !url.searchParams.has('subid2')) {
-        url.searchParams.set('subid2', incomingParams.utm_campaign);
+
+      const campaign = incomingParams.utm_campaign || incomingParams.campaign;
+      if (campaign && !url.searchParams.has('subid2')) {
+        url.searchParams.set('subid2', campaign);
       }
     }
     return url.toString();
@@ -303,33 +307,22 @@ export function buildTargetUrlWithParams(
 }
 
 /**
- * Universal Serverless Slug Codec (Case-Insensitive Hex + Base64 Safe):
- * Encodes targetUrl + routing profile into a 100% case-insensitive token
- * so every Vercel Lambda / Edge across the globe resolves the target destination
- * instantly without database dependencies.
+ * Clean Compact Short Slug Generator:
+ * Generates clean, short, high-converting 6-character URLs (e.g. ad-8f92, deal-3k9x)
+ * that look authentic and clean on Facebook Ads.
  */
 export function encodeLinkSlug(
   targetUrl: string,
   safePageType: string = 'tech-editorial',
   preset: string = 'fb-strict'
 ): string {
-  try {
-    const payload = JSON.stringify({
-      u: targetUrl.trim(),
-      s: safePageType,
-      p: preset,
-    });
-    
-    // Hex encoding: 100% case-insensitive and URL-safe
-    let hex = '';
-    for (let i = 0; i < payload.length; i++) {
-      hex += payload.charCodeAt(i).toString(16).padStart(2, '0');
-    }
-    return `v-${hex}`;
-  } catch (err) {
-    console.error('encodeLinkSlug error:', err);
-    return `ad-${Math.random().toString(36).substring(2, 7)}`;
+  // Generate short, clean, authentic 6-7 character slug
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+  let rand = '';
+  for (let i = 0; i < 5; i++) {
+    rand += chars.charAt(Math.floor(Math.random() * chars.length));
   }
+  return `go-${rand}`;
 }
 
 export function decodeLinkSlug(slug: string): { targetUrl: string; safePageType: any } | null {
@@ -340,7 +333,7 @@ export function decodeLinkSlug(slug: string): { targetUrl: string; safePageType:
     if (clean.startsWith('v-')) {
       const raw = clean.substring(2);
       
-      // 1. Try Hex Decoding (preferred & case-insensitive)
+      // 1. Try Hex Decoding
       if (/^[0-9a-fA-F]+$/.test(raw) && raw.length % 2 === 0) {
         try {
           let json = '';

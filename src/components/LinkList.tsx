@@ -20,7 +20,9 @@ import {
   BarChart2,
   Clock,
   Smartphone,
-  Laptop
+  Laptop,
+  Flame,
+  Sparkles
 } from 'lucide-react';
 import { ShortLink, TrafficLog } from '@/lib/types';
 
@@ -43,7 +45,6 @@ export default function LinkList({
 }: LinkListProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [qrSlug, setQrSlug] = useState<string | null>(null);
-  const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentDomain, setCurrentDomain] = useState('shop.basictrickhub.com');
 
@@ -63,10 +64,6 @@ export default function LinkList({
     l.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
     l.targetUrl.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const toggleExpand = (linkId: string) => {
-    setExpandedLinkId(prev => (prev === linkId ? null : linkId));
-  };
 
   if (links.length === 0) {
     return (
@@ -116,7 +113,7 @@ export default function LinkList({
           </div>
 
           <div className="text-xs text-slate-500 font-semibold px-2">
-            <span>{filteredLinks.length} Active Campaigns</span>
+            <span>{filteredLinks.length} Saved Campaigns</span>
           </div>
         </div>
       </div>
@@ -156,15 +153,15 @@ export default function LinkList({
         </div>
       )}
 
-      {/* Campaign Links List with Per-Link Stats */}
+      {/* Campaign Links List with Highlighted Latest Link */}
       <div className="grid grid-cols-1 gap-4">
-        {filteredLinks.map(link => {
+        {filteredLinks.map((link, index) => {
           const fullShortUrl = `${getBaseUrl()}/r/${link.slug}`;
-          const isExpanded = expandedLinkId === link.id;
+          const isLatest = index === 0; // Mark the topmost (most recent) link
           
-          const totalClicks = link.clicks.total || 0;
-          const humanClicks = link.clicks.human || 0;
-          const botClicks = link.clicks.bot || 0;
+          const totalClicks = link.clicks?.total || 0;
+          const humanClicks = link.clicks?.human || 0;
+          const botClicks = link.clicks?.bot || 0;
           
           const humanPercent = totalClicks > 0 ? Math.round((humanClicks / totalClicks) * 100) : 0;
           const botPercent = totalClicks > 0 ? Math.round((botClicks / totalClicks) * 100) : 0;
@@ -172,8 +169,10 @@ export default function LinkList({
           return (
             <div
               key={link.id}
-              className={`rounded-2xl border transition-all overflow-hidden ${
-                link.enabled
+              className={`rounded-2xl border transition-all overflow-hidden relative ${
+                isLatest
+                  ? 'bg-white border-indigo-400 shadow-md ring-2 ring-indigo-500/10'
+                  : link.enabled
                   ? 'bg-white border-slate-200 hover:border-indigo-200 shadow-sm'
                   : 'bg-slate-50 border-slate-200 opacity-60'
               }`}
@@ -184,6 +183,13 @@ export default function LinkList({
                   {/* Left Column: Link Metadata & Actions */}
                   <div className="space-y-2 flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
+                      {isLatest && (
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white flex items-center gap-1 shadow-xs">
+                          <Flame className="w-3 h-3 fill-amber-300 text-amber-300 animate-pulse" />
+                          <span>Latest Campaign Link</span>
+                        </span>
+                      )}
+
                       <span className="font-extrabold text-sm text-slate-900">{link.title}</span>
                       
                       {/* Active Status Badge */}
@@ -210,7 +216,7 @@ export default function LinkList({
 
                     {/* Short URL Box & Quick Buttons */}
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className="flex items-center bg-slate-50 px-3.5 py-1.5 rounded-xl border border-slate-200 font-mono text-xs text-indigo-700 font-bold select-all break-all">
+                      <div className="flex items-center bg-slate-50 px-3.5 py-1.5 rounded-xl border border-slate-200 font-mono text-xs text-indigo-700 font-bold select-all break-all shadow-inner">
                         {fullShortUrl}
                       </div>
 
@@ -218,7 +224,7 @@ export default function LinkList({
                         href={fullShortUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs transition-colors flex items-center gap-1 font-bold"
+                        className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs transition-colors flex items-center gap-1 font-bold shadow-xs active:scale-95"
                         title="Test Live Destination"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
@@ -258,8 +264,8 @@ export default function LinkList({
                         Target Destination: <strong className="text-slate-800 font-normal">{link.targetUrl}</strong>
                       </span>
                       {link.preserveUtms && (
-                        <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                          UTM / SubID ON
+                        <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 font-semibold">
+                          Meta Pixel & UTM Passthrough Active
                         </span>
                       )}
                     </div>
@@ -272,10 +278,10 @@ export default function LinkList({
                       <div className="flex items-center justify-between text-xs font-bold">
                         <span className="text-slate-500 flex items-center gap-1 text-[11px]">
                           <Activity className="w-3.5 h-3.5 text-indigo-600" />
-                          <span>Link Traffic Stats</span>
+                          <span>Campaign Traffic</span>
                         </span>
                         <span className="font-mono text-slate-900 font-black text-xs">
-                          {totalClicks} Total Clicks
+                          {totalClicks} Hits
                         </span>
                       </div>
 
