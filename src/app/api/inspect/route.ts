@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { storage } from '@/lib/storage';
-import { detectBot, buildTargetUrlWithParams } from '@/lib/bot-detector';
+import { detectBot, buildTargetUrlWithParams, decodeLinkSlug } from '@/lib/bot-detector';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -10,7 +10,27 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { slug, simulatedUserAgent, headers: simHeaders = {}, queryParams = {} } = body;
 
-    const link = slug ? storage.getLinkBySlug(slug) : null;
+    let link = slug ? storage.getLinkBySlug(slug) : null;
+    if (!link && slug) {
+      const decoded = decodeLinkSlug(slug);
+      if (decoded) {
+        link = {
+          id: `inspect-${slug}`,
+          slug,
+          title: `Active Link (${slug.substring(0, 8)})`,
+          targetUrl: decoded.targetUrl,
+          safePageType: decoded.safePageType || 'tech-editorial',
+          redirectMethod: 'meta-refresh',
+          sensitivity: 'strict-fb',
+          enabled: true,
+          preserveUtms: true,
+          createdAt: new Date().toISOString(),
+          clicks: { total: 0, human: 0, bot: 0 },
+          health: { score: 100, riskLevel: 'safe', crawlerScanSurge: false, metaReviewFrequency: 'normal', recommendation: 'Optimal' },
+        };
+      }
+    }
+
     const sensitivity = link ? link.sensitivity : 'strict-fb';
     const requireFbclid = link ? link.requireFbclid : false;
 
